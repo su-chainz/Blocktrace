@@ -29,22 +29,37 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 
-import com.example.covidapp.ui.main.SectionsPagerAdapter;
 
 public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        SectionsPagerAdapter sectionsPagerAdapter = new SectionsPagerAdapter(this, getSupportFragmentManager());
-        ViewPager viewPager = findViewById(R.id.view_pager);
-        viewPager.setAdapter(sectionsPagerAdapter);
-        TabLayout tabs = findViewById(R.id.tabs);
-        tabs.setupWithViewPager(viewPager);
-
+        setContentView(R.layout.act_main);
 
         requestPermissions(new String[] { Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_EXTERNAL_STORAGE } , 1);
+        Button AdButton = findViewById(R.id.Ad);
+        Button DiscoverButton = findViewById(R.id.Discover);
+        AdButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view)
+            {
+                // Do something
+                startAdvertising();
+
+            }
+        });
+
+        DiscoverButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view)
+            {
+                // Do something
+                startDiscovery();
+            }
+        });
+
     }
 
     private final EndpointDiscoveryCallback endpointDiscoveryCallback =
