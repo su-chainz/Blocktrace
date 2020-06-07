@@ -2,8 +2,12 @@ package com.example.covidapp;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationManager;
 import android.os.Bundle;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.connection.AdvertisingOptions;
 import com.google.android.gms.nearby.connection.ConnectionInfo;
@@ -17,6 +21,7 @@ import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadCallback;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.android.gms.nearby.connection.Strategy;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.circularreveal.CircularRevealHelper;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
@@ -31,139 +36,102 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 
+import org.json.JSONObject;
+
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.List;
+import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
+    private FusedLocationProviderClient fusedLocationClient;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.act_main);
 
-        requestPermissions(new String[] { Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_EXTERNAL_STORAGE } , 1);
-        Button AdButton = findViewById(R.id.Ad);
-        Button DiscoverButton = findViewById(R.id.Discover);
-        AdButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view)
-            {
-                // Do something
-                startAdvertising();
+        requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
 
-            }
-        });
+        String uid = getUID();
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
-        DiscoverButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view)
-            {
-                // Do something
-                startDiscovery();
-            }
-        });
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                fusedLocationClient.getLastLocation()
+                        .addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                            @Override
+                            public void onSuccess(Location location) {
+                                // Got last known location. In some rare situations this can be null.
+                                if (location != null) {
+                                    try {
+                                        JSONObject position = new JSONObject();
+                                        position.put("lat", location.getLatitude());
+                                        position.put("lng", location.getLongitude());
+                                        position.put("UID", uid);
 
-    }
+                                        String url = "http://url.com";
+                                        URL object = new URL(url);
 
-    private final EndpointDiscoveryCallback endpointDiscoveryCallback =
-            new EndpointDiscoveryCallback() {
-                @Override
-                public void onEndpointFound(String endpointId, DiscoveredEndpointInfo info) {
-                    // An endpoint was found. We request a connection to it.
-                    Nearby.getConnectionsClient(getApplicationContext())
-                            .requestConnection("Alice", endpointId, connectionLifecycleCallback)
-                            .addOnSuccessListener(
-                                    (Void unused) -> {
-                                        // We successfully requested a connection. Now both sides
-                                        // must accept before the connection is established.
-                                    })
-                            .addOnFailureListener(
-                                    (Exception e) -> {
-                                        // Nearby Connections failed to request the connection.
-                                    });
-                }
+                                        HttpURLConnection con = (HttpURLConnection) object.openConnection();
+                                        con.setDoOutput(true);
+                                        con.setDoInput(true);
+                                        con.setRequestProperty("Content-Type", "application/json");
+                                        con.setRequestProperty("Accept", "application/json");
+                                        con.setRequestMethod("POST");
 
-                @Override
-                public void onEndpointLost(String endpointId) {
-                    // A previously discovered endpoint has gone away.
-                }
-            };
 
-    private final ConnectionLifecycleCallback connectionLifecycleCallback =
-            new ConnectionLifecycleCallback() {
-                @Override
-                public void onConnectionInitiated(String endpointId, ConnectionInfo connectionInfo) {
-                    // Automatically accept the connection on both sides.
-                    ReceiveBytesPayloadListener payloadCallback = new ReceiveBytesPayloadListener();
-                    Nearby.getConnectionsClient(getApplicationContext()).acceptConnection(endpointId, payloadCallback);
-                }
+                                        OutputStreamWriter wr = new OutputStreamWriter(con.getOutputStream());
+                                        wr.write(position.toString());
+                                    } catch (Exception e) {
 
-                @Override
-                public void onConnectionResult(String endpointId, ConnectionResolution result) {
-                    switch (result.getStatus().getStatusCode()) {
-                        case ConnectionsStatusCodes.STATUS_OK:
-                            // We're connected! Can now start sending and receiving data.
-                            break;
-                        case ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED:
-                            // The connection was rejected by one or both sides.
-                            break;
-                        case ConnectionsStatusCodes.STATUS_ERROR:
-                            // The connection broke before it was able to be accepted.
-                            break;
-                        default:
-                            // Unknown status code
-                    }
-                }
-
-                @Override
-                public void onDisconnected(String endpointId) {
-                    // We've been disconnected from this endpoint. No more data can be
-                    // sent or received.
-                }
-            };
-
-    private void startAdvertising() {
-        AdvertisingOptions advertisingOptions =
-                new AdvertisingOptions.Builder().setStrategy(Strategy.P2P_POINT_TO_POINT).build();
-        Nearby.getConnectionsClient(this)
-                .startAdvertising(
-                        "Alice", "com.example.covidapp", connectionLifecycleCallback, advertisingOptions)
-                .addOnSuccessListener(
-                        (Void unused) -> {
-                            // We're advertising!
-                        })
-                .addOnFailureListener(
-                        (Exception e) -> {
-                            // We were unable to start advertising.
+                                    }
+                                }
+                            }
                         });
+        }
     }
 
-    private void startDiscovery() {
-        DiscoveryOptions discoveryOptions =
-                new DiscoveryOptions.Builder().setStrategy(Strategy.P2P_POINT_TO_POINT).build();
-        Nearby.getConnectionsClient(this)
-                .startDiscovery("com.example.covidapp", endpointDiscoveryCallback, discoveryOptions)
-                .addOnSuccessListener(
-                        (Void unused) -> {
-                            // We're discovering!
-                        })
-                .addOnFailureListener(
-                        (Exception e) -> {
-                            // We're unable to start discovering.
-                        });
+    private double getMeters(double firstLat, double firstLng, double secLat, double secLong) {
+        final double latDistanceScale = 110574;
+        final double lngDistanceScale = 111320;
+        final double degToRad = Math.PI / 180;
+        double latRadians = degToRad * firstLat;
+        double latDistance = latDistanceScale * (firstLat - secLat);
+        double lngDistance = lngDistanceScale * (firstLng - secLong) * Math.cos(latRadians);
+        return Math.sqrt(latDistance * latDistance + lngDistance * lngDistance);
     }
 
-    static class ReceiveBytesPayloadListener extends PayloadCallback {
+    private Location getLastKnownLocation() {
+        LocationManager mLocationManager;
+        mLocationManager = (LocationManager) getApplicationContext().getSystemService(LOCATION_SERVICE);
+        List<String> providers = mLocationManager.getProviders(true);
+        Location bestLocation = null;
+        for (String provider : providers) {
+            Location l = mLocationManager.getLastKnownLocation(provider);
+            if (l == null) {
+                continue;
+            }
+            if (bestLocation == null || l.getAccuracy() < bestLocation.getAccuracy()) {
+                // Found best last known location: %s", l);
+                bestLocation = l;
+            }
+        }
+        return bestLocation;
+    }
 
-        @Override
-        public void onPayloadReceived(String endpointId, Payload payload) {
-            // This always gets the full data of the payload. Will be null if it's not a BYTES
-            // payload. You can check the payload type with payload.getType().
-            byte[] receivedBytes = payload.asBytes();
+    private String getUID() {
+        String SALTCHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+        StringBuilder salt = new StringBuilder();
+        Random rnd = new Random();
+
+        while (salt.length() < 15) {
+            int index = (int) (rnd.nextFloat() * SALTCHARS.length());
+            salt.append(SALTCHARS.charAt(index));
         }
 
-        @Override
-        public void onPayloadTransferUpdate(String endpointId, PayloadTransferUpdate update) {
-            // Bytes payloads are sent as a single chunk, so you'll receive a SUCCESS update immediately
-            // after the call to onPayloadReceived().
-        }
+        String saltStr = salt.toString();
+        return saltStr;
     }
 }
 
