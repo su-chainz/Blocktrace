@@ -39,26 +39,26 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.act_main);
 
         requestPermissions(new String[] { Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_EXTERNAL_STORAGE } , 1);
-        Button AdButton = findViewById(R.id.Ad);
-        Button DiscoverButton = findViewById(R.id.Discover);
-        AdButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view)
-            {
-                // Do something
-                startAdvertising();
-
-            }
-        });
-
-        DiscoverButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view)
-            {
-                // Do something
-                startDiscovery();
-            }
-        });
+//        Button AdButton = findViewById(R.id.Ad);
+//        Button DiscoverButton = findViewById(R.id.Discover);
+//        AdButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view)
+//            {
+//                // Do something
+//                startAdvertising();
+//
+//            }
+//        });
+//
+//        DiscoverButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view)
+//            {
+//                // Do something
+//                startDiscovery();
+//            }
+//        });
 
     }
 
@@ -128,10 +128,12 @@ public class MainActivity extends AppCompatActivity {
                 .addOnSuccessListener(
                         (Void unused) -> {
                             // We're advertising!
+                            System.out.println("Ad Success");
                         })
                 .addOnFailureListener(
                         (Exception e) -> {
                             // We were unable to start advertising.
+                            System.out.println("Ad Exception");
                         });
     }
 
@@ -143,10 +145,12 @@ public class MainActivity extends AppCompatActivity {
                 .addOnSuccessListener(
                         (Void unused) -> {
                             // We're discovering!
+                            System.out.println("Disc Success");
                         })
                 .addOnFailureListener(
                         (Exception e) -> {
                             // We're unable to start discovering.
+                            System.out.println("Disc Exception");
                         });
     }
 
